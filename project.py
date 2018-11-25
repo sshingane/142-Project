@@ -1,6 +1,7 @@
 import numpy as np
 import re
 from sklearn.feature_extraction.text import CountVectorizer
+import collections
 
 def tokenize_sentences(sentences):
     words = []
@@ -29,15 +30,22 @@ def bagofwords(sentence, words):
     return np.array(bag)
 
 sentences = []
+stop = ['a', 'the', 'of', 'and', 'to', 'is']
 with open('train.csv') as my_file:
     for line in my_file:
         sentences.append(line)
 
 vocabulary = tokenize_sentences(sentences)
-bagofwords("Machine learning is great", vocabulary)
+bagofwords("the only thing Avary seems to care about are mean giggles and pulchritude", vocabulary)
+#bags = [ collections.Counter(re.findall(r'\w+', txt)) for txt in sentences]
+#print "got bags"
+#sumbags = sum(bags, collections.Counter())
+#print "got sumbags"
 
-vectorizer = CountVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = None, max_features = 5000) 
+vectorizer = CountVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = stop, max_features = 5000) 
 train_data_features = vectorizer.fit_transform(sentences)
-vectorizer.transform(["Machine learning is great"]).toarray()
+vectorizer.transform(sentences).toarray()
 
-print '\n'.join(str(line) for line in vocabulary) 
+print vectorizer.vocabulary_
+#print '\n'.join(str(line) for line in vocabulary) 
+#print sumbags
