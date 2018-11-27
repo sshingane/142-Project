@@ -1,8 +1,10 @@
+from __future__ import print_function 
 import numpy as np
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import collections
+ 
 
 def tokenize_sentences(sentences):
     words = []
@@ -50,12 +52,18 @@ vectorizer = TfidfVectorizer(analyzer = "word", tokenizer = None, preprocessor =
 vectorizer.fit(sentences)
 vectorizer.transform(sentences).toarray()
 vector = vectorizer.transform(sentences)
-vector.todok().keys()
-vector.todok().items()
-#v_array = vector.toarray()
+#vector.todok().keys()
+#vector.todok().items()
+v_array = vector
+v_array.sort_indices()
+v_data = [] 
+v_data = v_array.data
+v_data.sort()
+
 
 #print vectorizer.vocabulary_
-#print vectorizer.idf_\
+#print vectorizer.idf_
+
 '''
 print vector.shape
 print len(vector.toarray())
@@ -67,7 +75,10 @@ print 'col:'
 print v_array.col
 print size
 '''
+with open('./output.txt', 'w+') as file_out:
+    for item in v_data:
+        file_out.write("%s\n" % item)
+#print (v_data, file = file_out)
 
-print vector
 #print '\n'.join(str(line) for line in vocabulary) 
 #print sumbags
