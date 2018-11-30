@@ -37,9 +37,7 @@ def open_file(sentence):
     size = 0
 
     with open('train.csv') as my_file:
-        for line in my_file:
-            size += 1
-            sentence.append(line)
+        sentence = my_file.read().splitlines()
 
     return sentence
 
@@ -52,6 +50,39 @@ def trim(data):
 
     return v_trim  
 
+def num_parse(sentence):
+    num_data = []
+    count = 0
+    counter = 0
+
+    for line in sentences: 
+        liner = line.split(",")
+        print liner
+        counter += 1
+        print counter
+        '''
+        if counter > 1:
+            temp = liner[-1]
+            temp = int(temp)
+            num_data.append(temp)
+        '''
+        for i in range(len(liner)):
+            #print len(liner)
+            count += 1
+            print ("count: ", count, " counter: ", counter)
+            
+            if liner[i].isdigit():
+                count += 1
+                print ("count: ", count, " counter: ", counter) 
+                temp = int(liner[i])
+                #print temp
+                if temp < 5 and i == len(liner)-1:
+                    #print temp
+                    num_data.append(temp)
+                    
+
+    return num_data
+
 def vectorize(sentences, stop):
     vectorizer = TfidfVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = stop, max_features = 5000) 
     vectorizer.fit(sentences)
@@ -60,9 +91,11 @@ def vectorize(sentences, stop):
 
     return vector
 
-
+nums = []
 sentences = []
 sentences = open_file(sentences)
+print len(sentences)
+nums = num_parse(sentences)
 stop = ['a', 'the', 'of', 'and', 'to', 'is']
 
 #vocabulary = tokenize_sentences(sentences)
@@ -75,14 +108,23 @@ stop = ['a', 'the', 'of', 'and', 'to', 'is']
 
 #vector.todok().keys()
 #vector.todok().items()
+'''
 v_array = vectorize(sentences, stop)
 v_array.sort_indices()
 v_data = [] 
 v_data = v_array.data
-v_data.sort()
+#v_data.sort()
 v_partial = []
 v_partial = trim(v_data)
+v_merge = []
+i = 0
+end = 0
 
+while end != 109234:
+    if (v_partial[end]-(v_array[end].data)).any():
+        v_merge.append(v_array[end].indices)
+    end += 1
+'''
 
 #print vectorizer.vocabulary_
 #print vectorizer.idf_
@@ -98,10 +140,19 @@ print 'col:'
 print v_array.col
 print size
 '''
+#print v_array[4535].indices
 
-with open('./output_5.txt', 'w+') as file_out:
-    for item in v_partial:
+print len(nums)
+#print nums
+
+with open('./output_9.txt', 'w+') as file_out:
+    for item in nums:
         file_out.write("%s\n" % item)
+
+
+#with open('./output_6.txt', 'w+') as file_out:
+ #   for item in v_merge:
+  #      file_out.write("%s\n" % item)
 
 
 #print '\n'.join(str(line) for line in vocabulary) 
