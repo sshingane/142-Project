@@ -58,7 +58,7 @@ def num_parse(sentence):
     for line in sentences: 
         liner = line.split(",")
        # print liner
-        #counter += 1
+        counter += 1
         #print counter
         
         if counter > 1:
