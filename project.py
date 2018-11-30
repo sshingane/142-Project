@@ -57,10 +57,10 @@ def num_parse(sentence):
 
     for line in sentences: 
         liner = line.split(",")
-        print liner
-        counter += 1
-        print counter
-        '''
+       # print liner
+        #counter += 1
+        #print counter
+        
         if counter > 1:
             temp = liner[-1]
             temp = int(temp)
@@ -68,18 +68,18 @@ def num_parse(sentence):
         '''
         for i in range(len(liner)):
             #print len(liner)
-            count += 1
-            print ("count: ", count, " counter: ", counter)
+           # count += 1
+            #print ("count: ", count, " counter: ", counter)
             
             if liner[i].isdigit():
-                count += 1
-                print ("count: ", count, " counter: ", counter) 
+              #  count += 1
+             #   print ("count: ", count, " counter: ", counter) 
                 temp = int(liner[i])
                 #print temp
                 if temp < 5 and i == len(liner)-1:
                     #print temp
                     num_data.append(temp)
-                    
+                    '''
 
     return num_data
 
@@ -108,7 +108,7 @@ stop = ['a', 'the', 'of', 'and', 'to', 'is']
 
 #vector.todok().keys()
 #vector.todok().items()
-'''
+
 v_array = vectorize(sentences, stop)
 v_array.sort_indices()
 v_data = [] 
@@ -124,7 +124,7 @@ while end != 109234:
     if (v_partial[end]-(v_array[end].data)).any():
         v_merge.append(v_array[end].indices)
     end += 1
-'''
+
 
 #print vectorizer.vocabulary_
 #print vectorizer.idf_
@@ -142,17 +142,17 @@ print size
 '''
 #print v_array[4535].indices
 
-print len(nums)
+#print len(nums)
 #print nums
 
-with open('./output_9.txt', 'w+') as file_out:
-    for item in nums:
-        file_out.write("%s\n" % item)
-
-
-#with open('./output_6.txt', 'w+') as file_out:
- #   for item in v_merge:
+#with open('./output_9.txt', 'w+') as file_out:
+ #   for item in nums:
   #      file_out.write("%s\n" % item)
+
+
+with open('./output_6.txt', 'w+') as file_out:
+    for item in v_merge:
+        file_out.write("%s\n" % item)
 
 
 #print '\n'.join(str(line) for line in vocabulary) 
