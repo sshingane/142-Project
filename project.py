@@ -1,13 +1,16 @@
-#from __future__ import print_function 
 import numpy as np
 import re
-# from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LinearRegression
 import collections
 import csv
-from sklearn.
+import sklearn.metrics
+from sklearn.metrics import confusion_matrix
+from nltk.corpus import stopwords
 
-
+"""
+Returns tuple of instances, labels of the data from the file 
+"""
 def open_file():
     instances = []
     labels = []
@@ -60,37 +63,59 @@ def trim(data):
 #     return labels
 
 def vectorize(instances):
-    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None)
+    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'))
     corpus = []
     for i in instances:         
         corpus.append(i[2]) # appends the phrase of each instance into the corpus
     corpus_fitted = vectorizer.fit(corpus)
     corpus_transformed = corpus_fitted.transform(corpus)
-    vector_matrx = corpus_transformed.toarray()
+    vector_matrix = corpus_transformed.toarray()
 
-    vectorized_phrases = []
-    for row in vector_matrx: 
-        vectorized_phrases.append(row.tolist())
-    return vectorized_phrases
+    print(len(vectorizer.vocabulary_))
+    return vector_matrix
 
+def linear_regression(feature_vector_matrix, actual_labels):
+    # Vanilla Regression Model 
+    # 200 iterations (matches asg 4)
+    vanilla_linear_regression = LinearRegression(n_jobs = 200).fit(feature_vector_matrix, actual_labels)
+    predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
+    rounded = []
+    for i in predicted_labels: 
+        rounded.append(math.trunc(i))
+    return rounded 
+    
+    
+def printPerformance(model_name, actual_labels, predicted_labels):
+    labels = [0, 1, 2, 3, 4]
+    # conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
+    accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
+    precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
+    print('='*60)
+    print(model_name)
+    print('='*60)
+    # print('CONFUSION MATRIX:')
+    # print(conf_matrix)
+    print('ACCURACY ' + str(accuracy))
+    print('PRECISION' + str(precision))
 
 if __name__ == '__main__':
     # Open file 
     file_data = open_file()
     instances = file_data[0]
-    labels = file_data[1]
+    actual_labels = file_data[1]
     
     # Number of training instances
     print(len(instances))    
 
-    # Parse labels
-
-    stop = ['a', 'the', 'of', 'and', 'to', 'is']
-
-    vectorized_instances = vectorize(instances)
+    # Vectorize phrases
+    feature_vector_matrix = vectorize(instances)
     
-    
-    # vectorized_instances.sort_indices()
+    # Call vanilla regression
+    lin_reg_predicted_labels = linear_regression(feature_vector_matrix, actual_labels)
+
+    printPerformance('Vanilla Linear Regression', actual_labels, lin_reg_predicted_labels)
+
+    # feature_vector.sort_indices()
     # v_data = [] 
     # v_data = vectorized_instances.data
     # #v_data.sort()
@@ -105,7 +130,6 @@ if __name__ == '__main__':
     #         v_merge.append(vectorized_instances[end].indices)
     #     end += 1
 
-    with open('./output_6.txt', 'w+') as file_out:
-        for item in v_merge:
-            file_out.write("%s\n" % item)
-
+    # with open('./output_6.txt', 'w+') as file_out:
+    #     for item in v_merge:
+    #         file_out.write("%s\n" % item)
