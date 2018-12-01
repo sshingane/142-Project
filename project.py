@@ -7,6 +7,7 @@ import csv
 import sklearn.metrics
 from sklearn.metrics import confusion_matrix
 from nltk.corpus import stopwords
+import math
 
 """
 Returns tuple of instances, labels of the data from the file 
@@ -77,7 +78,9 @@ def vectorize(instances):
 def linear_regression(feature_vector_matrix, actual_labels):
     # Vanilla Regression Model 
     # 200 iterations (matches asg 4)
-    vanilla_linear_regression = LinearRegression(n_jobs = 200).fit(feature_vector_matrix, actual_labels)
+    print('training model')
+    vanilla_linear_regression = LinearRegression().fit(feature_vector_matrix, actual_labels)
+    print('finished training model')
     predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
     rounded = []
     for i in predicted_labels: 
