@@ -19,7 +19,7 @@ def open_file():
     next(data)  # Skip header row
     for line in data:
         instances.append(line[0:3])
-        labels.append(line[3])
+        labels.append(int(line[3]))
     return (instances, labels)
 
 def tokenize_sentences(sentences):
@@ -70,16 +70,16 @@ def vectorize(instances):
         corpus.append(i[2]) # appends the phrase of each instance into the corpus
     corpus_fitted = vectorizer.fit(corpus)
     corpus_transformed = corpus_fitted.transform(corpus)
-    vector_matrix = corpus_transformed.toarray()
 
     print(len(vectorizer.vocabulary_))
-    return vector_matrix
+    return corpus_transformed
 
 def linear_regression(feature_vector_matrix, actual_labels):
     # Vanilla Regression Model 
     # 200 iterations (matches asg 4)
     print('training model')
-    vanilla_linear_regression = LinearRegression().fit(feature_vector_matrix, actual_labels)
+    vanilla_linear_regression = LinearRegression(
+        n_jobs=1, fit_intercept=True, normalize=True).fit(feature_vector_matrix, actual_labels)
     print('finished training model')
     predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
     rounded = []
@@ -98,14 +98,16 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     print('='*60)
     # print('CONFUSION MATRIX:')
     # print(conf_matrix)
-    print('ACCURACY ' + str(accuracy))
-    print('PRECISION' + str(precision))
+    print('ACCURACY: ' + str(accuracy))
+    print('PRECISION: ' + str(precision))
 
 if __name__ == '__main__':
     # Open file 
     file_data = open_file()
     instances = file_data[0]
     actual_labels = file_data[1]
+    # print(actual_labels)
+    # print(len(actual_labels))
     
     # Number of training instances
     print(len(instances))    
