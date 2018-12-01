@@ -1,5 +1,5 @@
 #from __future__ import print_function 
-import numpy as np
+#import numpy as np
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -33,6 +33,7 @@ def bagofwords(sentence, words):
                 
     return np.array(bag)
 
+# Opens file, places contents of file to sentence list
 def open_file(sentence):
     size = 0
 
@@ -50,6 +51,7 @@ def trim(data):
 
     return v_trim  
 
+# Parses the file for the labels
 def num_parse(sentence):
     num_data = []
     count = 0
@@ -83,18 +85,21 @@ def num_parse(sentence):
 
     return num_data
 
+# Finds the tfidf vectorization of the data
 def vectorize(sentences, stop):
-    vectorizer = TfidfVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = stop, max_features = 5000) 
+    vectorizer = TfidfVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = stop, max_features = None) 
     vectorizer.fit(sentences)
     vectorizer.transform(sentences).toarray()
     vector = vectorizer.transform(sentences)
+    print (vectorizer.vocabulary_, file=open("output_11.txt", "a"))   
 
     return vector
+
 
 nums = []
 sentences = []
 sentences = open_file(sentences)
-print len(sentences)
+#print len(sentences)
 nums = num_parse(sentences)
 stop = ['a', 'the', 'of', 'and', 'to', 'is']
 
@@ -110,7 +115,7 @@ stop = ['a', 'the', 'of', 'and', 'to', 'is']
 #vector.todok().items()
 
 v_array = vectorize(sentences, stop)
-v_array.sort_indices()
+#v_array.sort_indices()
 v_data = [] 
 v_data = v_array.data
 #v_data.sort()
@@ -119,14 +124,14 @@ v_partial = trim(v_data)
 v_merge = []
 i = 0
 end = 0
-
-while end != 109234:
+'''
+while end != 109243:
     if (v_partial[end]-(v_array[end].data)).any():
         v_merge.append(v_array[end].indices)
     end += 1
+'''
 
-
-#print vectorizer.vocabulary_
+#print (vectorizer.vocabulary_)
 #print vectorizer.idf_
 
 '''
@@ -140,7 +145,7 @@ print 'col:'
 print v_array.col
 print size
 '''
-#print v_array[4535].indices
+#print (len(v_array.indices))
 
 #print len(nums)
 #print nums
@@ -150,9 +155,9 @@ print size
   #      file_out.write("%s\n" % item)
 
 
-with open('./output_6.txt', 'w+') as file_out:
-    for item in v_merge:
-        file_out.write("%s\n" % item)
+#with open('./output_6.txt', 'w+') as file_out:
+ #   for item in v_merge:
+  #      file_out.write("%s\n" % item)
 
 
 #print '\n'.join(str(line) for line in vocabulary) 
