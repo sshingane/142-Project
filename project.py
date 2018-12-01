@@ -2,6 +2,7 @@ import numpy as np
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LinearRegression
+from sklearn.naive_bayes import MultinomialNB
 import collections
 import csv
 import sklearn.metrics
@@ -22,20 +23,19 @@ def open_file():
         labels.append(int(line[3]))
     return (instances, labels)
 
-def tokenize_sentences(sentences):
-    words = []
-    for sentence in sentences:
-        w = extract_words(sentence)
-        words.extend(w)
-        
-    words = sorted(list(set(words)))
-    return words
+# def tokenize_sentences(sentences):
+#     words = []
+#     for sentence in sentences:
+#         w = extract_words(sentence)
+#         words.extend(w)        
+#     words = sorted(list(set(words)))
+#     return words
 
-def extract_words(sentence):
-    ignore_words = ['a', 'the', 'of', 'and', 'to', 'is']
-    words = re.sub("[^\w]", " ",  sentence).split() #nltk.word_tokenize(sentence)
-    words_cleaned = [w.lower() for w in words if w not in ignore_words]
-    return words_cleaned    
+# def extract_words(sentence):
+#     ignore_words = ['a', 'the', 'of', 'and', 'to', 'is']
+#     words = re.sub("[^\w]", " ",  sentence).split() #nltk.word_tokenize(sentence)
+#     words_cleaned = [w.lower() for w in words if w not in ignore_words]
+#     return words_cleaned    
     
 # def bagofwords(sentence, words):
 #     for i in sentence: 
@@ -78,26 +78,30 @@ def linear_regression(feature_vector_matrix, actual_labels):
     # Vanilla Regression Model 
     # 200 iterations (matches asg 4)
     print('training model')
-    vanilla_linear_regression = LinearRegression(
-        n_jobs=1, fit_intercept=True, normalize=True).fit(feature_vector_matrix, actual_labels)
+    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(feature_vector_matrix, actual_labels)
     print('finished training model')
     predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
     rounded = []
     for i in predicted_labels: 
         rounded.append(math.trunc(i))
     return rounded 
-    
+
+def naive_bayes(feature_vector_matrix, actual_labels):
+    nb = MultinomialNB()
+    nb.fit(feature_vector_matrix, actual_labels)
+    predicted_labels = nb.predict(feature_vector_matrix)
+    return predicted_labels
     
 def printPerformance(model_name, actual_labels, predicted_labels):
     labels = [0, 1, 2, 3, 4]
-    # conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
+    conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
     accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
     precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
     print('='*60)
     print(model_name)
     print('='*60)
-    # print('CONFUSION MATRIX:')
-    # print(conf_matrix)
+    print('CONFUSION MATRIX:')
+    print(conf_matrix)
     print('ACCURACY: ' + str(accuracy))
     print('PRECISION: ' + str(precision))
 
@@ -119,6 +123,10 @@ if __name__ == '__main__':
     lin_reg_predicted_labels = linear_regression(feature_vector_matrix, actual_labels)
 
     printPerformance('Vanilla Linear Regression', actual_labels, lin_reg_predicted_labels)
+
+    # Call Naive Bayes classifier
+    naive_bayes_predicted_labels = naive_bayes(feature_vector_matrix, actual_labels)
+    printPerformance('Naive Bayes', actual_labels, naive_bayes_predicted_labels)
 
     # feature_vector.sort_indices()
     # v_data = [] 
