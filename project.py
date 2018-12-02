@@ -1,14 +1,17 @@
-import numpy as np
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LinearRegression
-from sklearn.naive_bayes import MultinomialNB
 import collections
 import csv
-import sklearn.metrics
-from sklearn.metrics import confusion_matrix
-from nltk.corpus import stopwords
 import math
+import re
+
+import numpy as np
+import sklearn.metrics
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import confusion_matrix
+from sklearn.naive_bayes import MultinomialNB
+
 
 """
 Returns tuple of instances, labels of the data from the file 
@@ -62,8 +65,19 @@ def trim(data):
 #         labels.append(i[3])
 
 #     return labels
+def count_vectorize(instances):
+    vectorizer = CountVectorizer(analyzer = 'word', stop_words = stopwords.words('english'))
+    corpus = []
+    for i in instances:
+        # appends the phrase of each instance into the corpus
+        corpus.append(i[2])
+    corpus_fitted = vectorizer.fit(corpus)
+    corpus_transformed = corpus_fitted.transform(corpus)
 
-def vectorize(instances):
+    print('Count Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
+    return corpus_transformed
+
+def tfid_vectorize(instances):
     vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'))
     corpus = []
     for i in instances:         
@@ -71,7 +85,7 @@ def vectorize(instances):
     corpus_fitted = vectorizer.fit(corpus)
     corpus_transformed = corpus_fitted.transform(corpus)
 
-    print(len(vectorizer.vocabulary_))
+    print('tfid Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
     return corpus_transformed
 
 def linear_regression(feature_vector_matrix, actual_labels):
@@ -103,7 +117,7 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     print('CONFUSION MATRIX:')
     print(conf_matrix)
     print('ACCURACY: ' + str(accuracy))
-    print('PRECISION: ' + str(precision))
+    print('PRECISION: ' + str(precision) + '\n')
 
 if __name__ == '__main__':
     # Open file 
@@ -116,17 +130,24 @@ if __name__ == '__main__':
     # Number of training instances
     print(len(instances))    
 
-    # Vectorize phrases
-    feature_vector_matrix = vectorize(instances)
+    # TFID Vectorize phrases
+    tfid_vector_matrix = tfid_vectorize(instances)
+
+    # Count Vectorize phrases
+    count_vector_matrix = count_vectorize(instances)
     
     # Call vanilla regression
-    lin_reg_predicted_labels = linear_regression(feature_vector_matrix, actual_labels)
+    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, actual_labels)
+    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, actual_labels)
 
-    printPerformance('Vanilla Linear Regression', actual_labels, lin_reg_predicted_labels)
+    printPerformance('Vanilla Linear Regression + tfid', actual_labels, lin_reg_predicted_labels)
+    printPerformance('Vanilla Linear Regression + count', actual_labels, lin_reg_predicted_labels_count)
 
     # Call Naive Bayes classifier
-    naive_bayes_predicted_labels = naive_bayes(feature_vector_matrix, actual_labels)
-    printPerformance('Naive Bayes', actual_labels, naive_bayes_predicted_labels)
+    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, actual_labels)
+    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, actual_labels)
+    printPerformance('Naive Bayes + tfid', actual_labels, naive_bayes_predicted_labels)
+    printPerformance('Naive Bayes + count', actual_labels, naive_bayes_predicted_labels_count)
 
     # feature_vector.sort_indices()
     # v_data = [] 
