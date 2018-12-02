@@ -12,6 +12,7 @@ import math
 import sklearn.metrics
 from sklearn.metrics import confusion_matrix 
 from sklearn.svm import LinearSVC
+from sklearn.model_selection import cross_validate
 
 # Opens file, places contents of file to sentence list
 def open_file(sentence):
@@ -81,7 +82,7 @@ def regression(instance, labels):
 
 def svm(instance, labels):
     rounded = []
-    svm = LinearSVC(random_state=0, tol=1e-5, C = 5)
+    svm = LinearSVC(random_state=0, tol=1e-5, C = 1)
     svm_fit = svm.fit(instance, labels)
     prediction = svm_fit.predict(instance)
    # print (prediction, file=open("output_15.txt", "a"))
@@ -131,15 +132,24 @@ if __name__ == '__main__':
     #v_partial = trim(v_data)
     v_merge = []
     rounded = []
+    test_score = []
+    train_score = []
     count = 0
     end = 0
 
  #   prediction = regression(v_array, labels)
     svm_prediction = svm(v_array, labels)
     print(svm_prediction)
+    clf = LinearSVC(random_state=0, tol=1e-5, C = 1)
+    cv_result = cross_validate(clf, v_array, labels, cv=5, return_train_score=True)   
+    test_score = cv_result.get('test_score')
+    train_score = cv_result.get('train_score')
+    print ('5 folds, test score: ', test_score, "train score: ", train_score)
+
 
   #  printPerformance('Vanilla Linear Regression', labels, prediction)
     printPerformance('SVM', labels, svm_prediction)    
+    #printPerformance('SVM Validation', labels, cv_result)
 
     #while end != 109242:
      #   if (v_partial[end]-(v_array[end].data)).any():
