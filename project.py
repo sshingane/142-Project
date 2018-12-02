@@ -9,7 +9,9 @@ from nltk.corpus import stopwords
 import collections
 import csv
 import math
- 
+import sklearn.metrics
+from sklearn.metrics import confusion_matrix 
+from sklearn.svm import LinearSVC
 
 def tokenize_sentences(sentences):
     words = []
@@ -54,7 +56,7 @@ def open_file_csv():
     next(data)  # Skip header row
     for line in data:
         instances.append(line[0:3])
-        labels.append(line[3])
+        labels.append(int(line[3]))
     return (instances, labels)
 
 def trim(data):
@@ -82,21 +84,6 @@ def num_parse(sentence):
             temp = liner[-1]
             temp = int(temp)
             num_data.append(temp)
-        '''
-        for i in range(len(liner)):
-            #print len(liner)
-           # count += 1
-            #print ("count: ", count, " counter: ", counter)
-            
-            if liner[i].isdigit():
-              #  count += 1
-             #   print ("count: ", count, " counter: ", counter) 
-                temp = int(liner[i])
-                #print temp
-                if temp < 5 and i == len(liner)-1:
-                    #print temp
-                    num_data.append(temp)
-                    '''
 
     return num_data
 
@@ -107,14 +94,39 @@ def vectorize(sentences, stop):
     vectorizer.transform(sentences).toarray()
     vector = vectorizer.transform(sentences)
     print (len(vectorizer.vocabulary_))
-   # print (vectorizer.vocabulary_, file=open("output_11.txt", "a"))   
+    #print (vectorizer.vocabulary_, file=open("output_14.txt", "a"))   
 
     return vector
 
 def regression(instance, labels):
-    reg = LinearRegression().fit(instance, labels)
+    rounded = []
+    reg = LinearRegression(n_jobs = 200, fit_intercept=True, normalize=True).fit(instance, labels)
     prediction = reg.predict(instance)  
-    return prediction  
+    for i in prediction:
+        rounded.append(math.trunc(i))
+    return rounded  
+
+def svm(instance, labels):
+    rounded = []
+    svm = LinearSVC(random_state=0, tol=1e-5)
+    svm_fit = svm.fit(instance, labels)
+    prediction = svm_fit.predict(instance)
+   # print (prediction, file=open("output_15.txt", "a"))
+       
+    return prediction
+
+def printPerformance(model_name, actual_labels, predicted_labels):
+    labels = [0, 1, 2, 3, 4]
+    conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
+    accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
+    precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
+    print('='*60)
+    print(model_name)
+    print('='*60)
+    print('CONFUSION MATRIX:')
+    print(conf_matrix)
+    print('ACCURACY: ' + str(accuracy))
+    print('PRECISION: ' + str(precision))
 
 if __name__ == '__main__':
     nums = []
@@ -127,19 +139,10 @@ if __name__ == '__main__':
         corpus.append(i[2])
    # sentences = open_file(sentences)
 
-        
    # print (len(sentences))
     #print (len(corpus))
     #nums = num_parse(sentences)
     stop = set(stopwords.words('english'))
-
-    #vocabulary = tokenize_sentences(sentences)
-    #bagofwords("the only thing Avary seems to care about are mean giggles and pulchritude", vocabulary)
-    #bags = [ collections.Counter(re.findall(r'\w+', txt)) for txt in sentences]
-    #print "got bags"
-    #sumbags = sum(bags, collections.Counter())
-    #print "got sumbags"
-
 
     #vector.todok().keys()
     #vector.todok().items()
@@ -156,18 +159,12 @@ if __name__ == '__main__':
     count = 0
     end = 0
 
-    prediction = regression(v_array, labels)
-    for i in prediction:
-        rounded.append(math.trunc(i))
-        if i < 5 and i > 4:
-            count += 1
-    for i in rounded:
-        if i == 4:
-            end += 1
+ #   prediction = regression(v_array, labels)
+    svm_prediction = svm(v_array, labels)
+    print(svm_prediction)
 
-    print (count, ", ", end)
-    print (len(prediction))
-    print (len(rounded))
+  #  printPerformance('Vanilla Linear Regression', labels, prediction)
+    printPerformance('SVM', labels, svm_prediction)    
 
     #while end != 109242:
      #   if (v_partial[end]-(v_array[end].data)).any():
@@ -178,17 +175,6 @@ if __name__ == '__main__':
     #print (vectorizer.vocabulary_)
     #print vectorizer.idf_
 
-    '''
-    print vector.shape
-    print len(vector.toarray())
-    print 'data:'  
-    print v_array.data
-    print 'row:' 
-    print v_array.row
-    print 'col:' 
-    print v_array.col
-    print size
-    '''
     #print ((v_array.indices))
 
     #with open('./output_13.txt', 'w+') as file_out:
@@ -203,10 +189,6 @@ if __name__ == '__main__':
       #      file_out.write("%s\n" % item)
 
 
-    with open('./output_6.txt', 'w+') as file_out:
-        for item in v_merge:
-            file_out.write("%s\n" % item)
-
-
-    #print '\n'.join(str(line) for line in vocabulary) 
-    #print sumbags
+#    with open('./output_6.txt', 'w+') as file_out:
+ #       for item in v_merge:
+  #          file_out.write("%s\n" % item)
