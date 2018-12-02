@@ -104,6 +104,13 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     print('PRECISION: ' + str(precision))
     print('F-MEASURE: ', str(f_measure))
 
+def cross_validation(instance, labels):
+    clf = LinearSVC(random_state=0, tol=1e-5, C = 1)
+    cv_result = cross_validate(clf, instance, labels, cv=5, return_train_score=True)   
+    test_score = cv_result.get('test_score')
+    train_score = cv_result.get('train_score')
+    print ('5 folds, test score: ', test_score, "train score: ", train_score)
+
 if __name__ == '__main__':
     nums = []
     sentences = []
@@ -140,11 +147,8 @@ if __name__ == '__main__':
  #   prediction = regression(v_array, labels)
     svm_prediction = svm(v_array, labels)
     print(svm_prediction)
-    clf = LinearSVC(random_state=0, tol=1e-5, C = 1)
-    cv_result = cross_validate(clf, v_array, labels, cv=5, return_train_score=True)   
-    test_score = cv_result.get('test_score')
-    train_score = cv_result.get('train_score')
-    print ('5 folds, test score: ', test_score, "train score: ", train_score)
+
+    cross_validation(v_array, labels)
 
 
   #  printPerformance('Vanilla Linear Regression', labels, prediction)
