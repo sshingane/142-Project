@@ -13,33 +13,6 @@ import sklearn.metrics
 from sklearn.metrics import confusion_matrix 
 from sklearn.svm import LinearSVC
 
-def tokenize_sentences(sentences):
-    words = []
-    for sentence in sentences:
-        w = extract_words(sentence)
-        words.extend(w)
-        
-    words = sorted(list(set(words)))
-    return words
-
-def extract_words(sentence):
-    ignore_words = ['a', 'the', 'of', 'and', 'to', 'is']
-    words = re.sub("[^\w]", " ",  sentence).split() #nltk.word_tokenize(sentence)
-    words_cleaned = [w.lower() for w in words if w not in ignore_words]
-    return words_cleaned    
-    
-def bagofwords(sentence, words):
-    for i in sentence: 
-        sentence_words[i] = extract_words(sentence[i])
-    # frequency word count
-    bag = np.zeros(len(words))
-    for sw in sentence_words:
-        for i,word in enumerate(words):
-            if word == sw: 
-                bag[i] += 1
-                
-    return np.array(bag)
-
 # Opens file, places contents of file to sentence list
 def open_file(sentence):
     size = 0
@@ -108,7 +81,7 @@ def regression(instance, labels):
 
 def svm(instance, labels):
     rounded = []
-    svm = LinearSVC(random_state=0, tol=1e-5)
+    svm = LinearSVC(random_state=0, tol=1e-5, C = 5)
     svm_fit = svm.fit(instance, labels)
     prediction = svm_fit.predict(instance)
    # print (prediction, file=open("output_15.txt", "a"))
@@ -120,6 +93,7 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
     accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
     precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
+    f_measure = sklearn.metrics.f1_score(actual_labels, predicted_labels, labels=labels, average=None)
     print('='*60)
     print(model_name)
     print('='*60)
@@ -127,6 +101,7 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     print(conf_matrix)
     print('ACCURACY: ' + str(accuracy))
     print('PRECISION: ' + str(precision))
+    print('F-MEASURE: ', str(f_measure))
 
 if __name__ == '__main__':
     nums = []
@@ -153,7 +128,7 @@ if __name__ == '__main__':
     v_data = v_array.data
     #v_data.sort()
     v_partial = []
-    v_partial = trim(v_data)
+    #v_partial = trim(v_data)
     v_merge = []
     rounded = []
     count = 0
