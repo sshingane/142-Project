@@ -6,35 +6,26 @@ import re
 import numpy as np
 import sklearn.metrics
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import LinearRegression
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.linear_model import LinearRegression, Perceptron
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_validate
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
-from sklearn.linear_model import Perceptron
-from sklearn.model_selection import cross_validate
 
-
-"""
-Returns tuple of instances, labels of the data from the file 
-"""
-def open_file():
+###########################################################################################
+#   PREPROCESSING
+###########################################################################################
+def open_file(file_name):
     instances = []
     labels = []
-    data = csv.reader(open('train.csv'))
+    data = csv.reader(open(file_name))
     next(data)  # Skip header row
     for line in data:
         instances.append(line[0:3])
-        labels.append(int(line[3]))
+        if len(line) == 4: 
+            labels.append(int(line[3]))
     return (instances, labels)
-
-def trim(data):
-    v_trim = []
-    for line in data: 
-        if line > .5:
-            v_trim.append(line)
-    return v_trim  
 
 def count_vectorize(instances):
     vectorizer = CountVectorizer(analyzer = 'word', stop_words = stopwords.words('english'))
@@ -59,11 +50,12 @@ def tfid_vectorize(instances):
     print('tfid Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
     return corpus_transformed
 
-def linear_regression(feature_vector_matrix, actual_labels):
-    # Vanilla Regression Model 
-    # 200 iterations (matches asg 4)
+###########################################################################################
+#   CLASSIFIERS
+###########################################################################################
+def linear_regression(feature_vector_matrix, train_labels):    
     print('training model')
-    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(feature_vector_matrix, actual_labels)
+    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(feature_vector_matrix, train_labels)
     print('finished training model')
     predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
     rounded = []
@@ -71,31 +63,34 @@ def linear_regression(feature_vector_matrix, actual_labels):
         rounded.append(math.trunc(i))
     return rounded 
 
-def naive_bayes(feature_vector_matrix, actual_labels):
+def naive_bayes(feature_vector_matrix, train_labels):
     nb = MultinomialNB()
-    nb.fit(feature_vector_matrix, actual_labels)
+    nb.fit(feature_vector_matrix, train_labels)
     predicted_labels = nb.predict(feature_vector_matrix)
     return predicted_labels
 
-def svm(feature_vector_matrix, actual_labels):
+def svm(feature_vector_matrix, train_labels):
     svm = LinearSVC(random_state=0, tol=1e-5, max_iter=4000)
-    svm_fit = svm.fit(feature_vector_matrix, actual_labels)
+    svm_fit = svm.fit(feature_vector_matrix, train_labels)
     prediction = svm_fit.predict(feature_vector_matrix)
     return prediction
 
-def perceptron(feature_vector_matrix, actual_labels):
+def perceptron(feature_vector_matrix, train_labels):
     percep = Perceptron(tol=1e-3, random_state=0)
-    percep.fit(feature_vector_matrix, actual_labels)
+    percep.fit(feature_vector_matrix, train_labels)
     prediction = percep.predict(feature_vector_matrix)
-
     return prediction
-    
-def printPerformance(model_name, actual_labels, predicted_labels):
+
+
+###########################################################################################
+#   TESTING/VALIDATION
+###########################################################################################
+def printPerformance(model_name, expected_labels, predicted_labels):
     labels = [0, 1, 2, 3, 4]
-    conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
-    accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
-    precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
-    recall = sklearn.metrics.recall_score(actual_labels, predicted_labels, labels=labels, average=None)
+    conf_matrix = sklearn.metrics.confusion_matrix(expected_labels, predicted_labels, labels = labels)
+    accuracy = sklearn.metrics.accuracy_score(expected_labels, predicted_labels)
+    precision = sklearn.metrics.precision_score(expected_labels, predicted_labels, labels=labels, average=None)
+    recall = sklearn.metrics.recall_score(expected_labels, predicted_labels, labels=labels, average=None)
     print('='*60)
     print(model_name)
     print('='*60)
@@ -103,59 +98,59 @@ def printPerformance(model_name, actual_labels, predicted_labels):
     print(conf_matrix)
     print('ACCURACY: ' + str(accuracy) + ' Ava')
     print('RECALL: ' + str(recall))
-    print('PRECISION: ' + str(precision) + '\n')
-    
+    print('PRECISION: ' + str(precision) + '\n')   
 
 def cross_validation(instance, labels):
     clf = MultinomialNB()
     cv_result = cross_validate(
-        clf, instance, labels, cv=7, return_train_score=True)
+        clf, instance, labels, cv=10, return_train_score=True)
     test_score = cv_result.get('test_score')
     train_score = cv_result.get('train_score')
-    print('5 folds, test score: ', test_score, "train score: ", train_score)
+    print('7 folds, test score: ', test_score, "train score: ", train_score)
 
-
+###########################################################################################
+#   PROGRAM STARTS HERE
+###########################################################################################
 if __name__ == '__main__':
-    # Open file 
-    file_data = open_file()
-    instances = file_data[0]
-    actual_labels = file_data[1]
-    
-    
+    # Load data
+    train_instances, train_labels = open_file('train.csv')    
+        
     # Number of training instances
-    print(len(instances))    
+    print(len(train_instances))    
 
     # TFID Vectorize phrases
-    tfid_vector_matrix = tfid_vectorize(instances)
+    tfid_vector_matrix = tfid_vectorize(train_instances)
 
     # Count Vectorize phrases
-    count_vector_matrix = count_vectorize(instances)
+    count_vector_matrix = count_vectorize(train_instances)
     
     # Call vanilla regression
-    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, actual_labels)
-    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, actual_labels)
+    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, train_labels)
+    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, train_labels)
 
-    printPerformance('Vanilla Linear Regression + tfid', actual_labels, lin_reg_predicted_labels)
-    printPerformance('Vanilla Linear Regression + count', actual_labels, lin_reg_predicted_labels_count)
+    printPerformance('Vanilla Linear Regression + tfid', train_labels, lin_reg_predicted_labels)
+    printPerformance('Vanilla Linear Regression + count', train_labels, lin_reg_predicted_labels_count)
 
     # Call Naive Bayes classifier
-    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, actual_labels)
-    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, actual_labels)
-    printPerformance('Naive Bayes + tfid', actual_labels, naive_bayes_predicted_labels)
-    printPerformance('Naive Bayes + count', actual_labels, naive_bayes_predicted_labels_count)
+    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, train_labels)
+    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, train_labels)
+
+    printPerformance('Naive Bayes + tfid', train_labels, naive_bayes_predicted_labels)
+    printPerformance('Naive Bayes + count', train_labels, naive_bayes_predicted_labels_count)
 
     # Call SVM classifier 
-    svm_predicted_labels = svm(tfid_vector_matrix, actual_labels)
-    svm_predicted_labels_count = svm(count_vector_matrix, actual_labels)
+    svm_predicted_labels = svm(tfid_vector_matrix, train_labels)
+    svm_predicted_labels_count = svm(count_vector_matrix, train_labels)
 
-    printPerformance('SVM + tfid', actual_labels, svm_predicted_labels)
-    printPerformance('SVM + count', actual_labels, svm_predicted_labels_count)
+    printPerformance('SVM + tfid', train_labels, svm_predicted_labels)
+    printPerformance('SVM + count', train_labels, svm_predicted_labels_count)
 
     # Call Perceptron classifier
-    percep_predicted_labels = perceptron(tfid_vector_matrix, actual_labels)
-    percep_predicted_labels_count = perceptron(count_vector_matrix, actual_labels)
+    percep_predicted_labels = perceptron(tfid_vector_matrix, train_labels)
+    percep_predicted_labels_count = perceptron(count_vector_matrix, train_labels)
 
-    printPerformance('Perceptron + tfid', actual_labels, percep_predicted_labels)
-    printPerformance('Perceptron + count', actual_labels, percep_predicted_labels_count)
+    printPerformance('Perceptron + tfid', train_labels, percep_predicted_labels)
+    printPerformance('Perceptron + count', train_labels, percep_predicted_labels_count)
 
-    cross_validation(tfid_vector_matrix, actual_labels)
+    # Cross validation
+    cross_validation(tfid_vector_matrix, train_labels)
