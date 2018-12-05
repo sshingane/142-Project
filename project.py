@@ -53,32 +53,32 @@ def tfid_vectorize(instances):
 ###########################################################################################
 #   CLASSIFIERS
 ###########################################################################################
-def linear_regression(feature_vector_matrix, train_labels):    
+def linear_regression(train_instances, train_labels, test_instances):    
     print('training model')
-    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(feature_vector_matrix, train_labels)
+    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(train_instances, train_labels)
     print('finished training model')
-    predicted_labels = vanilla_linear_regression.predict(feature_vector_matrix)
+    predicted_labels = vanilla_linear_regression.predict(test_instances)
     rounded = []
     for i in predicted_labels: 
         rounded.append(math.trunc(i))
     return rounded 
 
-def naive_bayes(feature_vector_matrix, train_labels):
+def naive_bayes(train_instances, train_labels, test_instances):
     nb = MultinomialNB()
-    nb.fit(feature_vector_matrix, train_labels)
-    predicted_labels = nb.predict(feature_vector_matrix)
+    nb.fit(train_instances, train_labels)
+    predicted_labels = nb.predict(test_instances)
     return predicted_labels
 
-def svm(feature_vector_matrix, train_labels):
+def svm(train_instances, train_labels, test_instances):
     svm = LinearSVC(random_state=0, tol=1e-5, max_iter=4000)
-    svm_fit = svm.fit(feature_vector_matrix, train_labels)
-    prediction = svm_fit.predict(feature_vector_matrix)
+    svm_fit = svm.fit(train_instances, train_labels)
+    prediction = svm_fit.predict(test_instances)
     return prediction
 
-def perceptron(feature_vector_matrix, train_labels):
+def perceptron(train_instances, train_labels, test_instances):
     percep = Perceptron(tol=1e-3, random_state=0)
-    percep.fit(feature_vector_matrix, train_labels)
-    prediction = percep.predict(feature_vector_matrix)
+    percep.fit(train_instances, train_labels)
+    prediction = percep.predict(test_instances)
     return prediction
 
 
@@ -107,6 +107,8 @@ def cross_validation(instance, labels):
     test_score = cv_result.get('test_score')
     train_score = cv_result.get('train_score')
     print('7 folds, test score: ', test_score, "train score: ", train_score)
+
+def split_set
 
 ###########################################################################################
 #   PROGRAM STARTS HERE
