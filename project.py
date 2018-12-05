@@ -1,177 +1,195 @@
-#from __future__ import print_function 
-#import numpy as np
-import re
-import nltk
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LinearRegression
-from nltk.corpus import stopwords
 import collections
 import csv
 import math
+import re
+
+import numpy as np
 import sklearn.metrics
-from sklearn.metrics import confusion_matrix 
-from sklearn.svm import LinearSVC
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.linear_model import LinearRegression, Perceptron
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import cross_validate
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import AdaBoostRegressor
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
+from sklearn.ensemble import VotingClassifier
 
-# Opens file, places contents of file to sentence list
-def open_file(sentence):
-    size = 0
-    with open('train.csv') as my_file:    
-        sentence = my_file.read().splitlines()
-
-    return sentence
-
-# Opens file, extracts the instances and labels 
-def open_file_csv():
+###########################################################################################
+#   PREPROCESSING
+###########################################################################################
+def open_file(file_name):
     instances = []
     labels = []
-    data = csv.reader(open('train.csv'))
+    data = csv.reader(open(file_name))
     next(data)  # Skip header row
     for line in data:
         instances.append(line[0:3])
-        labels.append(int(line[3]))
+        if len(line) == 4: 
+            labels.append(int(line[3]))
     return (instances, labels)
 
-# Finds the tfidf vectorization of the data
-def vectorize(sentences, stop):
-    vectorizer = TfidfVectorizer(analyzer = "word", tokenizer = None, preprocessor = None, stop_words = stop, max_features = None) 
-    vectorizer.fit(sentences)
-    vectorizer.transform(sentences).toarray()
-    vector = vectorizer.transform(sentences)
-    print (len(vectorizer.vocabulary_))
-    #print (vectorizer.vocabulary_, file=open("output_14.txt", "a"))   
+def count_vectorize(instances):
+    vectorizer = CountVectorizer(analyzer = 'word', stop_words = stopwords.words('english'))
+    corpus = []
+    for i in instances:
+        # appends the phrase of each instance into the corpus
+        corpus.append(i[2])
+    corpus_fitted = vectorizer.fit(corpus)
+    corpus_transformed = corpus_fitted.transform(corpus)
 
-    return vector
+    print('Count Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
+    return corpus_transformed
 
-# Calculates the Linear Regression of the data
-def regression(instance, labels):
+def tfid_vectorize(instances):
+    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'))
+    corpus = []
+    for i in instances:         
+        corpus.append(i[2]) # appends the phrase of each instance into the corpus
+    corpus_fitted = vectorizer.fit(corpus)
+    corpus_transformed = corpus_fitted.transform(corpus)
+
+    print('tfid Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
+    return corpus_transformed
+
+###########################################################################################
+#   CLASSIFIERS
+###########################################################################################
+def linear_regression(train_instances, train_labels, test_instances):    
+    print('training model')
+    vanilla_linear_regression = LinearRegression(fit_intercept=True, normalize=True).fit(train_instances, train_labels)
+    print('finished training model')
+    predicted_labels = vanilla_linear_regression.predict(test_instances)
     rounded = []
-    reg = LinearRegression(n_jobs = 200, fit_intercept=True, normalize=True).fit(instance, labels)
-    prediction = reg.predict(instance)  
-    for i in prediction:
+    for i in predicted_labels: 
         rounded.append(math.trunc(i))
-    return rounded  
+    return rounded 
 
-# Finds the Linear SVM of the data, and returns the prediction
-def svm(instance, labels):
-    rounded = []
-    svm = LinearSVC(random_state=0, tol=1e-5, C = 5)
-    svm_fit = svm.fit(instance, labels)
-    prediction = svm_fit.predict(instance)
-   # print (prediction, file=open("output_15.txt", "a"))
-       
-    return prediction
-
-# Implements the naive bayes model on the features
-def naive_bayes(feature_vector_matrix, actual_labels):
+def naive_bayes(train_instances, train_labels, test_instances):
     nb = MultinomialNB()
-    nb.fit(feature_vector_matrix, actual_labels)
-    predicted_labels = nb.predict(feature_vector_matrix)
+    nb.fit(train_instances, train_labels)
+    predicted_labels = nb.predict(test_instances)
     return predicted_labels
 
-def gradient_boost(feature_vector_matrix, actual_labels):
-    lf = GradientBoostingClassifier(n_estimators=600, learning_rate=1.0,max_depth = 1, random_state = 0).fit(feature_vector_matrix, actual_labels)
-    return lf.predict(feature_vector_matrix)
+def svm(train_instances, train_labels, test_instances):
+    svm = LinearSVC(random_state=0, tol=1e-5, max_iter = 4000, C = 10)
+    svm_fit = svm.fit(train_instances, train_labels)
+    prediction = svm_fit.predict(test_instances)
+    return prediction
+
+def perceptron(train_instances, train_labels, test_instances):
+    percep = Perceptron(tol=1e-3, random_state=0)
+    percep.fit(train_instances, train_labels)
+    prediction = percep.predict(test_instances)
+    return prediction
 
 
-def ada_boost(feature_vector_matrix, actual_labels):
-    labels = []
-
-    #boost real values
-    bdt_real = AdaBoostRegressor(
-        LinearSVC(random_state=0, tol=1e-5, C = 1),
-        n_estimators=15104,
-        learning_rate=1)
-
-    #boost discrete values
-    bdt_discrete = AdaBoostRegressor(
-        LinearSVC(random_state=0, tol=1e-5, C = 1),
-        n_estimators=15104,
-        learning_rate=1.5)
-
-    for i in actual_labels:
-        labels.append(int(i))
-
-    bdt_real.fit(feature_vector_matrix, labels)
-   # bdt_discrete.fit(feature_vector_matrix, actual_labels)
-
-    real_test_errors = []
-    discrete_test_errors = []
-
-    # for real_test_predict, discrete_train_predict in zip(
-    #         bdt_real.staged_predict(feature_vector_matrix), bdt_discrete.staged_predict(feature_vector_matrix)):
-    #     real_test_errors.append(
-    #         1. - accuracy_score(real_test_predict, actual_labels))
-    #     discrete_test_errors.append(
-    #         1. - accuracy_score(discrete_train_predict, actual_labels))
-
-    # kfold = model_selection.KFold(n_splits=10)
-    #
-    # results = model_selection.cross_val_score(bdt_real, feature_vector_matrix, actual_labels, cv=kfold)
-    #scores = StratifiedKFold(bdt_real, feature_vector_matrix, actual_labels, n_splits=5)
-
-    return bdt_real.predict(feature_vector_matrix)
-
-# Calculates the metrics of the learning model, which are the accuracy, precision, F-measure, and recall. 
-def printPerformance(model_name, actual_labels, predicted_labels):
+###########################################################################################
+#   TESTING/VALIDATION
+###########################################################################################
+def printPerformance(model_name, expected_labels, predicted_labels):
     labels = [0, 1, 2, 3, 4]
-
-    conf_matrix = sklearn.metrics.confusion_matrix(actual_labels, predicted_labels, labels = labels)
-    accuracy = sklearn.metrics.accuracy_score(actual_labels, predicted_labels)
-    precision = sklearn.metrics.precision_score(actual_labels, predicted_labels, labels=labels, average=None)
-    f_measure = sklearn.metrics.f1_score(actual_labels, predicted_labels, labels=labels, average=None)
-    recall = sklearn.metrics.recall_score(actual_labels, predicted_labels, labels=labels, average=None)
-
+    conf_matrix = sklearn.metrics.confusion_matrix(expected_labels, predicted_labels, labels = labels)
+    accuracy = sklearn.metrics.accuracy_score(expected_labels, predicted_labels)
+    precision = sklearn.metrics.precision_score(expected_labels, predicted_labels, labels=labels, average=None)
+    recall = sklearn.metrics.recall_score(expected_labels, predicted_labels, labels=labels, average=None)
     print('='*60)
     print(model_name)
     print('='*60)
     print('CONFUSION MATRIX:')
     print(conf_matrix)
-    print('ACCURACY: ' + str(accuracy))
-    print('PRECISION: ' + str(precision))
-    print('F-MEASURE: ', str(f_measure))
-    print ('RECALL: ', str(recall))
-        
+    print('ACCURACY: ' + str(accuracy) + ' Ava')
+    print('RECALL: ' + str(recall))
+    print('PRECISION: ' + str(precision) + '\n')   
 
-# Implements 5-fold cross validation on the data, returns the test and train scores
 def cross_validation(instance, labels):
-    clf = LinearSVC(random_state=0, tol=1e-5, C = 5)
-    cv_result = cross_validate(clf, instance, labels, cv=5, return_train_score=True)   
+    clf = LinearSVC(random_state=0, tol=1e-5, C=10, max_iter=4000)
+    cv_result = cross_validate(
+        clf, instance, labels, cv=10, return_train_score=True)
     test_score = cv_result.get('test_score')
     train_score = cv_result.get('train_score')
-    print ('5 folds, test score: ', test_score, "train score: ", train_score)
+    print('10 folds, test score: ', test_score, "train score: ", train_score)
 
+def compile_output_file(instances, predicted_labels):
+    with open('RoyShinganeYu_predictions.csv', mode='w') as output:
+        file_writer = csv.writer(output, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        # Header row
+        file_writer.writerow(['PhraseID', 'Sentiment'])
+
+        # Write individual instance sentiments
+        for i in range(len(predicted_labels)):
+            file_writer.writerow([instances[i][0], predicted_labels[i]])
+
+
+
+
+###########################################################################################
+#   PROGRAM STARTS HERE
+###########################################################################################
 if __name__ == '__main__':
-    nums = []
-    sentences = []
-    corpus = []
-    vals = open_file_csv()
-    val = vals[0]
-    labels = vals[1]
-    for i in val:
-        corpus.append(i[2])
+    # Load data
+    train_instances, train_labels = open_file('train.csv')    
+    test_instances = open_file('testset_1.csv')
 
-    stop = set(stopwords.words('english'))
+    # Number of training instances
+    print(len(train_instances))    
 
-    v_array = vectorize(corpus, stop)
-    #v_array.sort_indices()
-    v_merge = []
-    count = 0
-    end = 0
+    # TFID Vectorize phrases
+    tfid_vector_matrix = tfid_vectorize(train_instances).astype(np.float64)
 
- #   prediction = regression(v_array, labels)
-    svm_prediction = svm(v_array, labels)
-   # print(svm_prediction)
+    # Count Vectorize phrases
+    count_vector_matrix = count_vectorize(train_instances).astype(np.float64)
 
- #   cross_validation(v_array, labels)
+    # # Load test data
+    # # Comment this out to set test instances
+    # file_test_instances = open_file('test.csv')
+    # test_instances = tfid_vectorize(file_test_instances)
 
-  #  printPerformance('Vanilla Linear Regression', labels, prediction)
-    printPerformance('SVM', labels, svm_prediction)    
-    #printPerformance('Ada Boost SVM', labels, ada_boost(v_array, labels))
+    # Delete this line to use file test instances
+    test_instances = tfid_vector_matrix
+    
+    
+    # Call vanilla regression
+    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, train_labels, test_instances)
+    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, train_labels, test_instances)
 
-#    with open('./output_6.txt', 'w+') as file_out:
- #       for item in v_merge:
-  #          file_out.write("%s\n" % item)
+    printPerformance('Vanilla Linear Regression + tfid', train_labels, lin_reg_predicted_labels)
+    printPerformance('Vanilla Linear Regression + count', train_labels, lin_reg_predicted_labels_count)
+
+    # Call Naive Bayes classifier
+    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, train_labels, test_instances)
+    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, train_labels, test_instances)
+
+    printPerformance('Naive Bayes + tfid', train_labels, naive_bayes_predicted_labels)
+    printPerformance('Naive Bayes + count', train_labels, naive_bayes_predicted_labels_count)
+
+    # Call SVM classifier 
+    svm_predicted_labels = svm(tfid_vector_matrix, train_labels, test_instances)
+    svm_predicted_labels_count = svm(count_vector_matrix, train_labels, test_instances)
+
+    printPerformance('SVM + tfid', train_labels, svm_predicted_labels)
+    printPerformance('SVM + count', train_labels, svm_predicted_labels_count)
+
+    # Call Perceptron classifier
+    percep_predicted_labels = perceptron(tfid_vector_matrix, train_labels, test_instances)
+    percep_predicted_labels_count = perceptron(count_vector_matrix, train_labels, test_instances)
+
+    printPerformance('Perceptron + tfid', train_labels, percep_predicted_labels)
+    printPerformance('Perceptron + count', train_labels, percep_predicted_labels_count)
+
+    # PRINTING OUT FILE 
+    # Change what output_label uses for file output by changing the predicted labels set
+    output_labels = svm_predicted_labels
+    compile_output_file(train_instances, output_labels)
+
+    # # Voting
+    # log_clf = LinearRegression()
+    # nb_clf = MultinomialNB()    
+    # svm_clf = LinearSVC()
+
+    # voting_clf = VotingClassifier( estimators=[('lr', log_clf), ('nb', nb_clf), ('svc', svm_clf)], voting='hard')
+    # voted_predicted_labels = voting_clf.fit(tfid_vector_matrix, train_labels).predict(train_instances)
+    # printPerformance('Voting', train_labels, voted_predicted_labels)
+
+     # Cross validation
+    cross_validation(tfid_vector_matrix, svm_predicted_labels)
+    cross_validation(count_vector_matrix, svm_predicted_labels_count)
