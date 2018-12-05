@@ -12,6 +12,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import cross_validate
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
+from sklearn.ensemble import VotingClassifier
 
 ###########################################################################################
 #   PREPROCESSING
@@ -101,12 +102,24 @@ def printPerformance(model_name, expected_labels, predicted_labels):
     print('PRECISION: ' + str(precision) + '\n')   
 
 def cross_validation(instance, labels):
-    clf = MultinomialNB()
+    clf = LinearSVC(random_state=0, tol=1e-5, C=5, max_iter=4000)
     cv_result = cross_validate(
         clf, instance, labels, cv=10, return_train_score=True)
     test_score = cv_result.get('test_score')
     train_score = cv_result.get('train_score')
-    print('7 folds, test score: ', test_score, "train score: ", train_score)
+    print('10 folds, test score: ', test_score, "train score: ", train_score)
+
+def compile_output_file(instances, predicted_labels):
+    with open('RoyShinganeYu_predictions.csv', mode='w') as output:
+        file_writer = csv.writer(output, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        # Header row
+        file_writer.writerow(['PhraseID', 'Sentiment'])
+
+        # Write individual instance sentiments
+        for i in range(len(predicted_labels)):
+            file_writer.writerow([instances[i][0], predicted_labels[i]])
+
+
 
 def split_set
 
@@ -116,43 +129,68 @@ def split_set
 if __name__ == '__main__':
     # Load data
     train_instances, train_labels = open_file('train.csv')    
-        
+    
+
     # Number of training instances
     print(len(train_instances))    
 
     # TFID Vectorize phrases
-    tfid_vector_matrix = tfid_vectorize(train_instances)
+    tfid_vector_matrix = tfid_vectorize(train_instances).astype(np.float64)
 
     # Count Vectorize phrases
-    count_vector_matrix = count_vectorize(train_instances)
+    count_vector_matrix = count_vectorize(train_instances).astype(np.float64)
+
+    # # Load test data
+    # # Comment this out to set test instances
+    # file_test_instances = open_file('test.csv')
+    # test_instances = tfid_vectorize(file_test_instances)
+
+    # Delete this line to use file test instances
+    test_instances = tfid_vector_matrix
+    
     
     # Call vanilla regression
-    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, train_labels)
-    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, train_labels)
+    lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, train_labels, test_instances)
+    lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, train_labels, test_instances)
 
     printPerformance('Vanilla Linear Regression + tfid', train_labels, lin_reg_predicted_labels)
     printPerformance('Vanilla Linear Regression + count', train_labels, lin_reg_predicted_labels_count)
 
     # Call Naive Bayes classifier
-    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, train_labels)
-    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, train_labels)
+    naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, train_labels, test_instances)
+    naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, train_labels, test_instances)
 
     printPerformance('Naive Bayes + tfid', train_labels, naive_bayes_predicted_labels)
     printPerformance('Naive Bayes + count', train_labels, naive_bayes_predicted_labels_count)
 
     # Call SVM classifier 
-    svm_predicted_labels = svm(tfid_vector_matrix, train_labels)
-    svm_predicted_labels_count = svm(count_vector_matrix, train_labels)
+    svm_predicted_labels = svm(tfid_vector_matrix, train_labels, test_instances)
+    svm_predicted_labels_count = svm(count_vector_matrix, train_labels, test_instances)
 
     printPerformance('SVM + tfid', train_labels, svm_predicted_labels)
     printPerformance('SVM + count', train_labels, svm_predicted_labels_count)
 
     # Call Perceptron classifier
-    percep_predicted_labels = perceptron(tfid_vector_matrix, train_labels)
-    percep_predicted_labels_count = perceptron(count_vector_matrix, train_labels)
+    percep_predicted_labels = perceptron(tfid_vector_matrix, train_labels, test_instances)
+    percep_predicted_labels_count = perceptron(count_vector_matrix, train_labels, test_instances)
 
     printPerformance('Perceptron + tfid', train_labels, percep_predicted_labels)
     printPerformance('Perceptron + count', train_labels, percep_predicted_labels_count)
 
-    # Cross validation
-    cross_validation(tfid_vector_matrix, train_labels)
+    # PRINTING OUT FILE 
+    # Change what output_label uses for file output by changing the predicted labels set
+    output_labels = svm_predicted_labels
+    compile_output_file(train_instances, output_labels)
+
+    # # Voting
+    # log_clf = LinearRegression()
+    # nb_clf = MultinomialNB()    
+    # svm_clf = LinearSVC()
+
+    # voting_clf = VotingClassifier( estimators=[('lr', log_clf), ('nb', nb_clf), ('svc', svm_clf)], voting='hard')
+    # voted_predicted_labels = voting_clf.fit(tfid_vector_matrix, train_labels).predict(train_instances)
+    # printPerformance('Voting', train_labels, voted_predicted_labels)
+
+    # # Cross validation
+    # cross_validation(tfid_vector_matrix, train_labels)
+    # cross_validation(count_vector_matrix, train_labels)
