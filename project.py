@@ -2,6 +2,7 @@ import collections
 import csv
 import math
 import re
+import pickle
 
 import numpy as np
 import sklearn.metrics
@@ -40,16 +41,36 @@ def count_vectorize(instances):
     print('Count Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
     return corpus_transformed
 
-def tfid_vectorize(instances):
-    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'))
-    corpus = []
-    for i in instances:         
-        corpus.append(i[2]) # appends the phrase of each instance into the corpus
+def tfid_vectorize_train(instances):    
+    # Store all phrases from instances into corpus list
+    corpus = []    
+    for i in instances:        
+        corpus.append(i[2])
+
+    # Initialize the 
+    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'), lowercase = True)
     corpus_fitted = vectorizer.fit(corpus)
+
+
+    pickle.dump(corpus_fitted, open('tfidf1.pkl', 'wb'))
+
     corpus_transformed = corpus_fitted.transform(corpus)
 
-    print('tfid Vectorizer Vocab Length: ' + str(len(vectorizer.vocabulary_)))
+    print('tfidf Vectorizer test Vocab Length: ' + str(len(vectorizer.vocabulary_)))
     return corpus_transformed
+
+def tfid_vectorize_test(instances):
+    corpus = []
+    for i in instances:
+        # appends the phrase of each instance into the corpus
+        corpus.append(i[2])
+
+    train_data = pickle.load(open('tfidf1.pkl', 'rb'))
+    vectorizer = TfidfVectorizer(analyzer='word', preprocessor=None, stop_words=stopwords.words('english'), lowercase=True, vocabulary = train_data.vocabulary_)
+
+    corpus_transformed = vectorizer.fit_transform(corpus)
+    return corpus_transformed
+
 
 ###########################################################################################
 #   CLASSIFIERS
@@ -92,6 +113,7 @@ def printPerformance(model_name, expected_labels, predicted_labels):
     accuracy = sklearn.metrics.accuracy_score(expected_labels, predicted_labels)
     precision = sklearn.metrics.precision_score(expected_labels, predicted_labels, labels=labels, average=None)
     recall = sklearn.metrics.recall_score(expected_labels, predicted_labels, labels=labels, average=None)
+    
     print('='*60)
     print(model_name)
     print('='*60)
@@ -120,62 +142,56 @@ def compile_output_file(instances, predicted_labels):
             file_writer.writerow([instances[i][0], predicted_labels[i]])
 
 
-
-def split_set
-
 ###########################################################################################
 #   PROGRAM STARTS HERE
 ###########################################################################################
 if __name__ == '__main__':
-    # Load data
+    # Load training data
     train_instances, train_labels = open_file('train.csv')    
-    
 
     # Number of training instances
-    print(len(train_instances))    
+    print('Number of training instances: ' + str(len(train_instances)))
 
-    # TFID Vectorize phrases
-    tfid_vector_matrix = tfid_vectorize(train_instances).astype(np.float64)
+    # TFIDF Vectorize training phrases
+    tfid_vector_matrix = tfid_vectorize_train(train_instances).astype(np.float64)
 
-    # Count Vectorize phrases
+    # Count Vectorize training phrases
     count_vector_matrix = count_vectorize(train_instances).astype(np.float64)
 
-    # # Load test data
-    # # Comment this out to set test instances
-    # file_test_instances = open_file('test.csv')
-    # test_instances = tfid_vectorize(file_test_instances)
+    # Load test data
+    # Since this is using the same function as the train set, it will output an empty labels list. We can ignore this. 
+    file_test_instances, throwaway = open_file('testset_1.csv')
 
-    # Delete this line to use file test instances
-    test_instances = tfid_vector_matrix
-    
-    
+    # TFIDF Vectorize test instances using the training vocabulary. 
+    test_instances = tfid_vectorize_test(file_test_instances)
+       
     # Call vanilla regression
     lin_reg_predicted_labels = linear_regression(tfid_vector_matrix, train_labels, test_instances)
     lin_reg_predicted_labels_count = linear_regression(count_vector_matrix, train_labels, test_instances)
 
-    printPerformance('Vanilla Linear Regression + tfid', train_labels, lin_reg_predicted_labels)
-    printPerformance('Vanilla Linear Regression + count', train_labels, lin_reg_predicted_labels_count)
+    # printPerformance('Vanilla Linear Regression + tfid', train_labels, lin_reg_predicted_labels)
+    # printPerformance('Vanilla Linear Regression + count', train_labels, lin_reg_predicted_labels_count)
 
     # Call Naive Bayes classifier
     naive_bayes_predicted_labels = naive_bayes(tfid_vector_matrix, train_labels, test_instances)
     naive_bayes_predicted_labels_count = naive_bayes(count_vector_matrix, train_labels, test_instances)
 
-    printPerformance('Naive Bayes + tfid', train_labels, naive_bayes_predicted_labels)
-    printPerformance('Naive Bayes + count', train_labels, naive_bayes_predicted_labels_count)
+    # printPerformance('Naive Bayes + tfid', train_labels, naive_bayes_predicted_labels)
+    # printPerformance('Naive Bayes + count', train_labels, naive_bayes_predicted_labels_count)
 
     # Call SVM classifier 
     svm_predicted_labels = svm(tfid_vector_matrix, train_labels, test_instances)
     svm_predicted_labels_count = svm(count_vector_matrix, train_labels, test_instances)
 
-    printPerformance('SVM + tfid', train_labels, svm_predicted_labels)
-    printPerformance('SVM + count', train_labels, svm_predicted_labels_count)
+    # printPerformance('SVM + tfid', train_labels, svm_predicted_labels)
+    # printPerformance('SVM + count', train_labels, svm_predicted_labels_count)
 
     # Call Perceptron classifier
     percep_predicted_labels = perceptron(tfid_vector_matrix, train_labels, test_instances)
     percep_predicted_labels_count = perceptron(count_vector_matrix, train_labels, test_instances)
 
-    printPerformance('Perceptron + tfid', train_labels, percep_predicted_labels)
-    printPerformance('Perceptron + count', train_labels, percep_predicted_labels_count)
+    # printPerformance('Perceptron + tfid', train_labels, percep_predicted_labels)
+    # printPerformance('Perceptron + count', train_labels, percep_predicted_labels_count)
 
     # PRINTING OUT FILE 
     # Change what output_label uses for file output by changing the predicted labels set
